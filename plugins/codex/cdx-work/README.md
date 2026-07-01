@@ -18,7 +18,11 @@ Then install **cdx-work** from `/plugins` and restart Codex.
 
 ## Configure
 
-Get a **Binding Token** and **API Secret** from the ContextDX Portal (**Sources → Add Source → Board Builder** — saving generates the secret), then create `.contextdx/config.json` at the root of your document set:
+Two ways to connect this document set to a board — both write the same `.contextdx/config.json`:
+
+**Browser login (fastest):** run `/login`. It signs you in through the ContextDX portal, lets you pick a workspace and a board that already has a Code Plugin binding, and writes the config for you — no tokens to copy. Use `/configure`'s "change board" option later to switch boards the same way.
+
+**Manual:** get a **Binding Token** and **API Secret** from the ContextDX Portal (**Sources → Add Source → Board Builder** — saving generates the secret), then create `.contextdx/config.json` at the root of your document set:
 
 ```json
 {
@@ -42,6 +46,8 @@ Get a **Binding Token** and **API Secret** from the ContextDX Portal (**Sources 
 
 Run `/configure` to validate the config, test the connection, and add `.contextdx/` to your `.gitignore`. Credentials live only in this file — never logged, and sent only to `api.contextdx.com`.
 
+> **Testing against a non-production server:** set `CONTEXTDX_BASE_URL` (or pass `--base-url` to the CLI scripts) to point every command — including `/login`'s device handshake — at a staging or local API. The browser login and app URLs then follow from that server's configuration, so nothing is pinned to production. `baseUrl` in `.contextdx/config.json` overrides it per repo.
+
 ## Supported document formats
 
 Automatically discovers documents across common formats and locations (`docs/`, `wiki/`, `rfcs/`, `adr/`, `specs/`, `policies/`, `notes/`, root `*.md`):
@@ -61,7 +67,7 @@ Mixed corpora (specs + ADRs + runbooks + notes in one tree) produce a unified bo
 
 The plugin uses a **two-phase workflow**: first settle the archetype vocabulary, then describe the knowledge set.
 
-1. `/configure` — connect to the portal (one-time per document set)
+1. `/login` (browser) or `/configure` (manual) — connect to the portal (one-time per document set)
 2. `/analyze-archetypes` — **Phase 1**: scan for the kinds of knowledge present, surface gaps in the server archetype catalogue, submit proposals for admin review
 3. `/analyze-docs` — **Phase 2**: full knowledge analysis (incremental — only changed documents re-analyzed)
 4. `/sync` — push the analysis to your board
@@ -70,13 +76,14 @@ The plugin uses a **two-phase workflow**: first settle the archetype vocabulary,
 
 If `/analyze-docs` is invoked before `/analyze-archetypes` has run for the current document set + catalogue state, it prompts you to run Phase 1 first.
 
-The operational commands — `/configure`, `/status`, `/sync`, `/insights`, `/help`, `/demo-insights` — are **shared** with `cdx-code` and behave identically. Only `/analyze-docs` and `/analyze-archetypes` carry the knowledge-specific analysis brain.
+The operational commands — `/login`, `/configure`, `/status`, `/sync`, `/insights`, `/help`, `/demo-insights` — are **shared** with `cdx-code` and behave identically. Only `/analyze-docs` and `/analyze-archetypes` carry the knowledge-specific analysis brain.
 
 ## Commands
 
 | Command | Description |
 |---|---|
-| `/configure` | Set up portal credentials and preferences |
+| `/login` | Browser sign-in: pick a workspace + bound board, writes config automatically |
+| `/configure` | Set up portal credentials manually, or switch to a different board |
 | `/analyze-archetypes` | Phase 1 — scan for archetype gaps, submit proposals if needed |
 | `/analyze-archetypes --dry-run` | Validate scan locally + ask server to dry-run, don't persist or POST |
 | `/analyze-archetypes --skip-submit` | Write the proposals file for manual review; don't POST |
