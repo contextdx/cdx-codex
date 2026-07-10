@@ -1,8 +1,8 @@
 ---
 category: build
-description: "Build the app from the platform's spec — compiled skills, intents, board design, aspect contracts. WRITE-CAPABLE: creates and edits project files (after you approve the plan)"
+description: "Build · Build the app from the platform's spec — compiled skills, intents, board design, aspect contracts. WRITE-CAPABLE: creates and edits project files (after you approve the plan)"
 argument-hint: [--plan | <focus prompt>]
-allowed-tools: Read, Glob, Grep, Edit, Write, Bash
+allowed-tools: Read, Glob, Grep, Edit, Write, Bash, AskUserQuestion
 ---
 
 Implement the platform's spec for this app in this repo. The **primary spec carrier is the compiled skills bundle** (synced by `/skills` — specs, guidelines, and conventions ride inside the skill files); open **intents**, a designed **board** (elements with no source mapping yet), and **aspect snapshots** (DB schema / API surface) layer on top when they exist. Covers bootstrap (empty repo) and gap-fill (the spec grew), and it is **incremental**: re-running builds only the delta.
@@ -21,8 +21,8 @@ Read `boardSlug` from `.contextdx/config.json`, then run:
 node ${PLUGIN_ROOT}/scripts/cdx-build.js --board-slug <boardSlug>
 ```
 
-- **Exit 1** → stop: "ContextDX not configured — run `/login` (browser) or `/configure` (manual) first"
-- **Exit 3** → stop and report the JSON `error` field. If `errorType` is `auth_invalid`: "Your ContextDX credentials were rejected — run `/login` to reconnect"
+- **Exit 1** → not configured — make the **connect-now offer** (see Error Handling)
+- **Exit 3** → stop and report the JSON `error` field. If `errorType` is `auth_invalid` — make the **connect-now offer** (see Error Handling)
 - **Exit 0** → print the `display` field **verbatim — do not reformat, reorder, or summarise**.
 
 **Skills freshness gate:** read the pack (`packPath`). If `skills.available` and (`skills.upstreamChanged` or `skills.compiledCount` is 0), sync first — building against a stale spec is building the wrong app:
@@ -67,7 +67,13 @@ Tell the user to run `/analyze-archetypes`, then `/analyze`, then `/sync`. For a
 
 ## Error Handling
 
-- **No config**: "ContextDX not configured — run `/login` (browser) or `/configure` (manual) first"
-- **Credentials rejected** (`errorType: "auth_invalid"`): "Your ContextDX credentials were rejected — run `/login` to reconnect"
+- **No config** / **credentials rejected** (`errorType: "auth_invalid"`): make the **connect-now offer** (below)
 - **Skills feature gated** (`skills.available: false` in the pack): relay the pack's note — building can continue from intents/design/aspects if present
 - **Degraded sections** (`warnings[]` in the pack): report them; they don't block the build
+
+### Connect-now offer
+
+Used whenever ContextDX is not configured or the credentials were rejected (`errorType: "auth_invalid"`). Ask with **AskUserQuestion** — "Connect to ContextDX now?" (**Connect now** / **Not now**):
+
+- **Connect now** → run the browser login here, printing each JSON `display` verbatim: `node ${PLUGIN_ROOT}/scripts/cdx-login.js --start`, then `node ${PLUGIN_ROOT}/scripts/cdx-login.js --poll --analyze-cmd analyze` (generous Bash timeout, e.g. 250s). On `status: "complete"`, resume this command from the step that failed; anything else — stop, the display explains.
+- **Not now** → stop with the canonical message: "ContextDX not configured — run `/login` (browser) or `/configure` (manual) first" (or, when credentials were rejected: "Your ContextDX credentials were rejected — run `/login` to reconnect").
